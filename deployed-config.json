@@ -1,0 +1,10 @@
+{
+  "programId": "246LSTmpgZKDsNVsuJxmfsP22MqeMkYZRWo15majDuu7",
+  "multisigPDA": "4CBKKSnupqNTEf8DzfNXE1EAEyAKD1bwycd2U7dPE6oF",
+  "vaultPDA": "5RLyjGUwEVTTVHQMvajRDD1FuS3DjSc1h8Cxe9A52b5B",
+  "signers": [
+    "3wEzj7icty3RaBUpuroWmCt5mpNL8Ki8TaajBRqBFEFk"
+  ],
+  "threshold": 1,
+  "network": "devnet"
+}
