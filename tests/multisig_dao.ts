@@ -1,5 +1,4 @@
-sh -c "$(curl -sSfL https://release.solana.com/v3.0.15/install)"cd /mnt/c/Users/RAHUL\ BANSAL/Desktop/solanaprojectcd /mnt/c/Users/RAHUL\ BANSAL/Desktop/solanaproject
-solana program deploy target/deploy/multisig_dao.so --program-id target/deploy/multisig_dao-keypair.jsonimport * as anchor from "@coral-xyz/anchor";
+import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { MultisigDao } from "../target/types/multisig_dao";
 import { PublicKey, Keypair, SystemProgram, LAMPORTS_PER_SOL } from "@solana/web3.js";

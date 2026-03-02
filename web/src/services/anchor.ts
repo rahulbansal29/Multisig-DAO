@@ -66,41 +66,6 @@ export class AnchorService {
     return tx;
   }
 
-
-import { Connection, PublicKey, SystemProgram, LAMPORTS_PER_SOL, clusterApiUrl } from '@solana/web3.js';
-import deployedConfig from '../config/deployedConfig';
-import { AnchorProvider, Program } from '@coral-xyz/anchor';
-import * as anchor from '@coral-xyz/anchor';
-import { walletService } from './wallet';
-import IDLData from '../../../target/idl/multisig_dao.json';
-const IDL = IDLData as any;
-const PROGRAM_ID = new PublicKey(IDL.address);
-const DEMO_MODE = false;
-
-export interface ProposalData {
-  pubkey: PublicKey;
-  id?: number;
-  description: string;
-  recipient: PublicKey;
-  amount: number;
-  status: 'pending' | 'approved' | 'rejected' | 'executed';
-  votesFor: number;
-  votesAgainst: number;
-  proposer: PublicKey;
-  createdAt: number;
-}
-
-export class AnchorService {
-  private connection: Connection;
-  private provider: AnchorProvider | null = null;
-  private program: Program | null = null;
-  private demoProposals: ProposalData[] = [];
-  private demoInitialized = false;
-
-  constructor() {
-    this.connection = new Connection(clusterApiUrl('devnet'), 'confirmed');
-  }
-
   async initialize(): Promise<void> {
     try {
       if (DEMO_MODE) {
