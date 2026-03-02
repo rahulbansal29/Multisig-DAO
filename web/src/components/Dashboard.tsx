@@ -137,14 +137,19 @@ export default function Dashboard({ onCreateProposal, reloadProposals }: Dashboa
         return;
       }
 
-      // TODO: Define signers and threshold or get from user input
-      // Example placeholder values:
-      const signers = [publicKey];
-      const threshold = 1;
+      // Use the 3 configured wallet addresses with 2-of-3 threshold
+      const signers = [
+        new PublicKey('3wEzj7icty3RaBUpuroWmCt5mpNL8Ki8TaajBRqBFEFk'),
+        new PublicKey('HPkUHvWYfAj8CzyeaEsT8CdDyqh6KhZqr4SZFbBjjwQh'),
+        new PublicKey('2YCDsgD8mZjDh6uom8J4gY6SmXWmJWxcDtQT8y5s5Tjr')
+      ];
+      const threshold = 2; // 2 out of 3 signers must approve
+      
+      console.log('Initializing with 3 signers and 2-of-3 threshold...');
       const tx = await multisigService.initializeMultisig(publicKey, signers, threshold)
       
       console.log('Multisig initialized! TX:', tx)
-      alert(`Success! Multisig initialized.\nTransaction: ${tx}`)
+      alert(`Success! Multisig initialized with 2-of-3 threshold.\nTransaction: ${tx}`)
       
       // Refresh status
       await checkMultisigInitialized()

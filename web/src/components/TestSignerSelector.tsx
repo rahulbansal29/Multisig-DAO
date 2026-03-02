@@ -10,6 +10,7 @@ export function TestSignerSelector({ onSignerChange }: TestSignerSelectorProps) 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [enabled, setEnabled] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [threshold, setThreshold] = useState(2);
 
   useEffect(() => {
     initializeTestSigners();
@@ -21,12 +22,19 @@ export function TestSignerSelector({ onSignerChange }: TestSignerSelectorProps) 
       const signers = testSignerService.getTestSigners();
       setTestSigners(signers);
       setEnabled(true);
+      // Load threshold from test-signers.json if available
+      const response = await fetch('/test-signers.json');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.threshold) {
+          setThreshold(data.threshold);
+        }
+      }
     }
     setLoading(false);
   };
 
   const handleSignerChange = (index: number) => {
-    testSignerService.setCurrentSigner(index);
     setCurrentIndex(index);
     const signer = testSigners[index];
     if (signer && onSignerChange) {
@@ -47,61 +55,80 @@ export function TestSignerSelector({ onSignerChange }: TestSignerSelectorProps) 
   return (
     <div
       style={{
-        background: '#f0f7ff',
-        border: '2px solid #667eea',
+        background: '#e8f5e9',
+        border: '2px solid #4caf50',
         borderRadius: '8px',
         padding: '1.5rem',
         marginBottom: '2rem',
       }}
     >
-      <h3 style={{ color: '#667eea', margin: '0 0 1rem 0' }}>
-        🧪 Test Mode - Multi-Signer Testing
+      <h3 style={{ color: '#2e7d32', margin: '0 0 1rem 0' }}>
+        ✅ Multi-Wallet Setup ({threshold}-of-{testSigners.length})
       </h3>
 
-      <p style={{ color: '#666', marginBottom: '1rem', fontSize: '0.9rem' }}>
-        <strong>Current Signer:</strong> {currentSigner.name} ({currentSigner.pubkey.slice(0, 10)}...)
+      <p style={{ color: '#1b5e20', marginBottom: '1rem', fontSize: '0.95rem', fontWeight: '500' }}>
+        <strong>Your Configuration:</strong> {threshold} out of {testSigners.length} signers must approve proposals
       </p>
 
-      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+      <div style={{ 
+        background: '#fff', 
+        padding: '1rem', 
+        borderRadius: '6px',
+        marginBottom: '1rem',
+        border: '1px solid #a5d6a7'
+      }}>
+        <p style={{ margin: '0 0 0.75rem 0', fontSize: '0.9rem', color: '#666' }}>
+          <strong>📋 Your {testSigners.length} Authorized Wallets:</strong>
+        </p>
         {testSigners.map((signer, index) => (
-          <button
+          <div
             key={index}
-            onClick={() => handleSignerChange(index)}
             style={{
-              padding: '0.5rem 1rem',
-              borderRadius: '6px',
-              border: currentIndex === index ? '2px solid #667eea' : '1px solid #ccc',
-              background: currentIndex === index ? '#667eea' : '#fff',
-              color: currentIndex === index ? '#fff' : '#667eea',
+              padding: '0.5rem',
+              marginBottom: '0.5rem',
+              background: currentIndex === index ? '#e8f5e9' : '#f5f5f5',
+              borderRadius: '4px',
+              fontFamily: 'monospace',
+              fontSize: '0.85rem',
               cursor: 'pointer',
-              fontWeight: currentIndex === index ? '600' : '400',
-              transition: 'all 0.2s',
+              border: currentIndex === index ? '2px solid #4caf50' : '1px solid #ddd',
             }}
+            onClick={() => handleSignerChange(index)}
           >
-            {signer.name}
-          </button>
+            <strong style={{ color: '#2e7d32' }}>{signer.name}:</strong>
+            <br />
+            <span style={{ wordBreak: 'break-all', color: '#666' }}>
+              {signer.pubkey}
+            </span>
+            {currentIndex === index && (
+              <span style={{ marginLeft: '0.5rem', color: '#4caf50' }}>← Current</span>
+            )}
+          </div>
         ))}
       </div>
 
       <div
         style={{
-          background: '#fff',
+          background: '#fff3cd',
           padding: '0.75rem',
           borderRadius: '6px',
           fontSize: '0.85rem',
-          color: '#666',
-          fontFamily: 'monospace',
-          wordBreak: 'break-all',
+          color: '#856404',
+          border: '1px solid #ffc107',
         }}
       >
-        <strong>Public Key:</strong>
-        <br />
-        {currentSigner.pubkey}
+        <strong>📝 How to Test Voting:</strong>
+        <ol style={{ margin: '0.5rem 0 0 0', paddingLeft: '1.25rem' }}>
+          <li>Connect with <strong>Wallet 1</strong> in Phantom and approve a proposal</li>
+          <li><strong>Disconnect</strong> and connect with <strong>Wallet 2</strong>, approve the same proposal</li>
+          <li>If you only have 1 wallet, you can still test with {threshold} approvals from the same wallet</li>
+          <li>After {threshold} approvals, execute to see the SOL transfer!</li>
+        </ol>
       </div>
 
-      <p style={{ fontSize: '0.85rem', color: '#999', marginTop: '1rem', marginBottom: 0 }}>
-        💡 <strong>Tip:</strong> Switch signers to test the approval flow. Approve with 3
-        different signers to reach threshold.
+      <p style={{ fontSize: '0.85rem', color: '#2e7d32', marginTop: '1rem', marginBottom: 0, fontWeight: '500' }}>
+        💡 <strong>Tip:</strong> These are your real Phantom wallet addresses. Switch wallets in Phantom
+        to test with different signers.
       </p>
     </div>
   );
