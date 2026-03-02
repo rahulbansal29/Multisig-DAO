@@ -117,18 +117,23 @@ export function TestSignerSelector({ onSignerChange }: TestSignerSelectorProps) 
           border: '1px solid #ffc107',
         }}
       >
-        <strong>📝 How to Test Voting:</strong>
+        <strong>� How to Switch Wallets (Important!):</strong>
         <ol style={{ margin: '0.5rem 0 0 0', paddingLeft: '1.25rem' }}>
-          <li>Connect with <strong>Wallet 1</strong> in Phantom and approve a proposal</li>
-          <li><strong>Disconnect</strong> and connect with <strong>Wallet 2</strong>, approve the same proposal</li>
-          <li>If you only have 1 wallet, you can still test with {threshold} approvals from the same wallet</li>
-          <li>After {threshold} approvals, execute to see the SOL transfer!</li>
+          <li><strong>Open Phantom extension</strong> (click browser icon)</li>
+          <li><strong>Click wallet/account name</strong> at the top</li>
+          <li><strong>Select different wallet</strong> from the list</li>
+          <li><strong>Disconnect & reconnect</strong> in this app</li>
+          <li>Now the new wallet is active for voting!</li>
         </ol>
+        <p style={{ margin: '0.75rem 0 0 0', fontSize: '0.8rem', fontStyle: 'italic' }}>
+          ⚠️ This UI above is for reference only - it does NOT switch wallets. 
+          You must switch in Phantom extension itself.
+        </p>
       </div>
 
       <p style={{ fontSize: '0.85rem', color: '#2e7d32', marginTop: '1rem', marginBottom: 0, fontWeight: '500' }}>
-        💡 <strong>Tip:</strong> These are your real Phantom wallet addresses. Switch wallets in Phantom
-        to test with different signers.
+        💡 <strong>Tip:</strong> If you only have 1 wallet, create more in Phantom: 
+        Settings → Add Wallet (or use same wallet for testing)
       </p>
     </div>
   );
