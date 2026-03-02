@@ -108,29 +108,4 @@ pub mod multisig_dao {
     pub fn execute_proposal(ctx: Context<ExecuteProposal>) -> Result<()> {
         instructions::execute_proposal::handler(ctx)
     }
-
-    /// Transfer SOL from treasury vault
-    /// 
-    /// # Arguments
-    /// * `ctx` - Context containing required accounts
-    /// * `amount` - Amount of lamports to transfer
-    /// 
-    /// # Security
-    /// - Called via CPI during proposal execution
-    /// - Vault is signer via PDA seeds
-    pub fn transfer_sol(ctx: Context<TransferSol>, amount: u64) -> Result<()> {
-        instructions::transfer_sol::handler(ctx, amount)
-    }
-
-    /// Close a multisig account (for cleanup)
-    /// 
-    /// # Arguments
-    /// * `ctx` - Context containing required accounts
-    /// 
-    /// # Security
-    /// - Only authority can close
-    /// - Recovers rent to authority
-    pub fn close_multisig(ctx: Context<CloseMultisig>) -> Result<()> {
-        instructions::close_multisig::handler(ctx)
-    }
 }

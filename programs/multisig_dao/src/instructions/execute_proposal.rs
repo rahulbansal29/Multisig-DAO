@@ -1,27 +1,26 @@
 use anchor_lang::prelude::*;
+use anchor_lang::system_program;
 use crate::{errors::MultisigError, events::ProposalExecuted, state::{Multisig, Proposal}};
 
-/// Execute an approved proposal
+/// Execute an approved proposal and transfer funds
 /// 
 /// Once a proposal has reached the approval threshold, any authorized
-/// signer can execute it. The vault PDA signs the transaction using
-/// its bump seed.
+/// signer can execute it to immediately transfer the treasury funds.
 /// 
-/// This instruction is intentionally flexible to allow execution of
-/// various transaction types. In production, you would deserialize
-/// and validate the instruction_data, then use CPI to execute it.
+/// The proposal.instruction_data contains:
+/// {
+///   "description": "...",
+///   "recipient": "...",
+///   "amount": amount_in_lamports
+/// }
 /// 
 /// Security Validations:
 /// 1. Proposal must have reached threshold
 /// 2. Proposal must not be expired
 /// 3. Proposal must not be already executed
 /// 4. Proposal must not be rejected
-/// 5. Marks proposal as executed to prevent replay
-/// 
-/// Note: In a production system, this would:
-/// - Deserialize proposal.instruction_data
-/// - Validate destination accounts
-/// - Execute via CPI with vault as signer
+/// 5. Vault must have sufficient balance
+/// 6. Marks proposal as executed to prevent replay
 #[derive(Accounts)]
 pub struct ExecuteProposal<'info> {
     pub multisig: Account<'info, Multisig>,
@@ -38,7 +37,7 @@ pub struct ExecuteProposal<'info> {
     )]
     pub proposal: Account<'info, Proposal>,
 
-    /// Treasury vault that will sign the transaction
+    /// Treasury vault that will send the funds
     /// CHECK: This is the vault PDA that holds treasury funds
     #[account(
         mut,
@@ -46,6 +45,11 @@ pub struct ExecuteProposal<'info> {
         bump = multisig.vault_bump
     )]
     pub vault: UncheckedAccount<'info>,
+
+    /// Recipient of the transfer
+    /// CHECK: Can be any account
+    #[account(mut)]
+    pub recipient: UncheckedAccount<'info>,
 
     pub executor: Signer<'info>,
 
@@ -63,7 +67,7 @@ pub fn handler(ctx: Context<ExecuteProposal>) -> Result<()> {
         MultisigError::InsufficientApprovals
     );
 
-    // Additional explicit checks (redundant but clear)
+    // Additional explicit checks
     require!(
         !proposal.is_expired(clock.unix_timestamp),
         MultisigError::ProposalExpired
@@ -78,17 +82,47 @@ pub fn handler(ctx: Context<ExecuteProposal>) -> Result<()> {
         MultisigError::InsufficientApprovals
     );
 
-    // Mark as executed (replay protection)
+    // Parse instruction data to get transfer amount
+    let instruction_data_str = String::from_utf8(proposal.instruction_data.clone())
+        .unwrap_or_default();
+    
+    let amount: u64 = instruction_data_str
+        .split("\"amount\":")
+        .nth(1)
+        .and_then(|s| s.split('}').next())
+        .and_then(|s| s.trim().parse().ok())
+        .unwrap_or(0);
+
+    // Validate vault has sufficient balance
+    let vault_balance = ctx.accounts.vault.lamports();
+    require!(
+        vault_balance >= amount,
+        MultisigError::InsufficientBalance
+    );
+
+    // Mark proposal as executed (replay protection)
     proposal.executed = true;
     proposal.executed_at = clock.unix_timestamp;
 
-    // In production, deserialize and execute the instruction_data here
-    // Example:
-    // let instruction = deserialize_instruction(&proposal.instruction_data)?;
-    // execute_cpi_with_vault_signer(instruction, vault_seeds)?;
-    
-    // For this implementation, we leave execution logic to be called
-    // separately (e.g., transfer_sol, transfer_token)
+    // Execute the transfer using vault as signer
+    let multisig_key = multisig.key();
+    let seeds = &[
+        b"vault",
+        multisig_key.as_ref(),
+        &[multisig.vault_bump],
+    ];
+    let signer_seeds = &[&seeds[..]];
+
+    let transfer_ctx = CpiContext::new_with_signer(
+        ctx.accounts.system_program.to_account_info(),
+        system_program::Transfer {
+            from: ctx.accounts.vault.to_account_info(),
+            to: ctx.accounts.recipient.to_account_info(),
+        },
+        signer_seeds,
+    );
+
+    system_program::transfer(transfer_ctx, amount)?;
 
     // Emit execution event
     emit!(ProposalExecuted {
