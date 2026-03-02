@@ -5,7 +5,8 @@
   "scripts": {
     "test": "anchor test",
     "build": "anchor build",
-    "deploy": "anchor deploy"
+    "deploy": "anchor deploy",
+    "setup:signers": "npx ts-node scripts/setup-test-signers.ts"
   },
   "dependencies": {
     "@coral-xyz/anchor": "0.32.1",

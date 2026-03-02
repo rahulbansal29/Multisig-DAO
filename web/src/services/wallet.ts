@@ -1,4 +1,5 @@
-import { PublicKey, Transaction, TransactionSignature } from '@solana/web3.js'
+import { PublicKey, Transaction, TransactionSignature, Connection } from '@solana/web3.js'
+import { testSignerService, TestSigner } from './testSigner'
 
 interface PhantomProvider {
   publicKey: PublicKey
@@ -12,6 +13,8 @@ interface PhantomProvider {
 
 export class WalletService {
   private provider: PhantomProvider | null = null
+  private useTestSigner = false
+  private currentTestSigner: TestSigner | null = null
 
   async getProvider(): Promise<PhantomProvider> {
     if (this.provider) {
@@ -65,12 +68,70 @@ export class WalletService {
 
   async getPublicKey(): Promise<PublicKey | null> {
     try {
+      if (this.useTestSigner && this.currentTestSigner) {
+        return new PublicKey(this.currentTestSigner.pubkey)
+      }
       const provider = await this.getProvider()
       return provider.isConnected ? provider.publicKey : null
     } catch {
       return null
     }
   }
+
+  /**
+   * Switch to a test signer for multi-signer testing
+   */
+  async useTestSignerByIndex(index: number): Promise<PublicKey | null> {
+    const signers = testSignerService.getTestSigners()
+    if (index < 0 || index >= signers.length) {
+      throw new Error(`Invalid test signer index: ${index}`)
+    }
+
+    testSignerService.setCurrentSigner(index)
+    this.currentTestSigner = signers[index]
+    this.useTestSigner = true
+
+    return new PublicKey(this.currentTestSigner.pubkey)
+  }
+
+  /**
+   * Switch to a test signer by name
+   */
+  async useTestSignerByName(name: string): Promise<PublicKey | null> {
+    const signers = testSignerService.getTestSigners()
+    const index = signers.findIndex((s) => s.name === name)
+
+    if (index === -1) {
+      throw new Error(`Test signer not found: ${name}`)
+    }
+
+    return this.useTestSignerByIndex(index)
+  }
+
+  /**
+   * Get current test signer (if using test mode)
+   */
+  getCurrentTestSigner(): TestSigner | null {
+    if (this.useTestSigner) {
+      return this.currentTestSigner
+    }
+    return null
+  }
+
+  /**
+   * Check if currently using a test signer
+   */
+  isUsingTestSigner(): boolean {
+    return this.useTestSigner
+  }
+
+  /**
+   * Get all available test signers
+   */
+  getAvailableTestSigners(): TestSigner[] {
+    return testSignerService.getTestSigners()
+  }
+
 
   async signTransaction(transaction: Transaction): Promise<Transaction> {
     try {

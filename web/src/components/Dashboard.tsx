@@ -4,6 +4,7 @@ import deployedConfig from '../config/deployedConfig';
 import { walletService } from '../services/wallet'
 import { anchorService, ProposalData } from '../services/anchor'
 import { multisigService } from '../services/multisig'
+import TestSignerSelector from './TestSignerSelector'
 import { LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js'
 
 interface Proposal {
@@ -273,12 +274,35 @@ export default function Dashboard({ onCreateProposal, reloadProposals }: Dashboa
       </div>
     )
   }
+
+  const handleTestSignerChange = async (signer: any) => {
+    try {
+      setLoading(true)
+      const pubkey = await walletService.useTestSignerByIndex(
+        walletService.getAvailableTestSigners().indexOf(signer)
+      )
+      if (pubkey) {
+        setUserAddress(pubkey.toString())
+        await loadBalance()
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to switch signer')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <>
       {error && (
         <div style={{ background: '#ff6b6b', color: 'white', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1rem' }}>
           {error}
         </div>
+      )}
+
+      {/* Test Signer Selector - Only show if test signers are available */}
+      {walletService.getAvailableTestSigners().length > 0 && (
+        <TestSignerSelector onSignerChange={handleTestSignerChange} />
       )}
 
       {/* Multisig Status Info */}

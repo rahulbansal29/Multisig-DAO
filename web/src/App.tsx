@@ -1,12 +1,20 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import './App.css'
 import Dashboard from './components/Dashboard'
 import ProposalForm from './components/ProposalForm'
+import { testSignerService } from './services/testSigner'
 
 
 function App() {
   const [showForm, setShowForm] = useState(false);
   const [reloadProposals, setReloadProposals] = useState(0);
+
+  // Load test signers on app start
+  useEffect(() => {
+    testSignerService.loadTestSigners().catch(err => {
+      console.log('Test signers not available:', err);
+    });
+  }, []);
 
   const handleProposalSuccess = () => {
     setShowForm(false);
