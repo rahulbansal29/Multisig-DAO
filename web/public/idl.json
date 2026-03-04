@@ -1,0 +1,1149 @@
+{
+  "address": "246LSTmpgZKDsNVsuJxmfsP22MqeMkYZRWo15majDuu7",
+  "metadata": {
+    "name": "multisig_dao",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Production-grade Solana DAO Treasury with Multisig"
+  },
+  "docs": [
+    "Production-grade DAO Treasury with Multisig capabilities",
+    "",
+    "This program implements a threshold-based multisig system for managing",
+    "a DAO treasury that can hold SOL and SPL tokens.",
+    "",
+    "Security Features:",
+    "- PDA-based vault for treasury management",
+    "- Threshold signature verification (M-of-N)",
+    "- Proposal state machine with expiry",
+    "- Replay attack prevention",
+    "- Signer uniqueness enforcement",
+    "- Comprehensive event emission",
+    "",
+    "Compute Budget Considerations:",
+    "- Uses efficient PDA derivation",
+    "- Minimal account reallocation",
+    "- Optimized instruction data packing"
+  ],
+  "instructions": [
+    {
+      "name": "approve_proposal",
+      "docs": [
+        "Approve a proposal",
+        "",
+        "# Arguments",
+        "* `ctx` - Context containing required accounts",
+        "",
+        "# Security",
+        "- Only authorized signers can approve",
+        "- Prevents duplicate approvals from same signer",
+        "- Validates proposal is not expired or executed"
+      ],
+      "discriminator": [
+        136,
+        108,
+        102,
+        85,
+        98,
+        114,
+        7,
+        147
+      ],
+      "accounts": [
+        {
+          "name": "multisig"
+        },
+        {
+          "name": "proposal",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  112,
+                  111,
+                  115,
+                  97,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "proposal.multisig",
+                "account": "Proposal"
+              },
+              {
+                "kind": "account",
+                "path": "proposal.index",
+                "account": "Proposal"
+              }
+            ]
+          }
+        },
+        {
+          "name": "signer",
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "create_proposal",
+      "docs": [
+        "Create a new proposal",
+        "",
+        "# Arguments",
+        "* `ctx` - Context containing required accounts",
+        "* `instruction_data` - Serialized instruction to execute",
+        "* `expiry` - Unix timestamp when proposal expires",
+        "",
+        "# Security",
+        "- Only authorized signers can create proposals",
+        "- Proposal stored with unique seed",
+        "- Expiry must be in the future"
+      ],
+      "discriminator": [
+        132,
+        116,
+        68,
+        174,
+        216,
+        160,
+        198,
+        22
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "writable": true
+        },
+        {
+          "name": "proposal",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  112,
+                  111,
+                  115,
+                  97,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "multisig"
+              },
+              {
+                "kind": "account",
+                "path": "multisig.proposal_count",
+                "account": "Multisig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "creator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "instruction_data",
+          "type": "bytes"
+        },
+        {
+          "name": "expiry",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "deposit_to_vault",
+      "docs": [
+        "Deposit SOL into the treasury vault",
+        "",
+        "Anyone can call this to fund the DAO treasury."
+      ],
+      "discriminator": [
+        18,
+        62,
+        110,
+        8,
+        26,
+        106,
+        248,
+        151
+      ],
+      "accounts": [
+        {
+          "name": "multisig"
+        },
+        {
+          "name": "vault",
+          "docs": [
+            "Treasury vault that receives the deposit"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "multisig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "depositor",
+          "docs": [
+            "Depositor - anyone can deposit"
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "execute_proposal",
+      "docs": [
+        "Execute an approved proposal",
+        "",
+        "# Arguments",
+        "* `ctx` - Context containing required accounts",
+        "",
+        "# Security",
+        "- Validates threshold reached",
+        "- Validates proposal not expired",
+        "- Validates proposal not already executed",
+        "- Executes using CPI with vault as signer",
+        "- Marks as executed to prevent replay"
+      ],
+      "discriminator": [
+        186,
+        60,
+        116,
+        133,
+        108,
+        128,
+        111,
+        28
+      ],
+      "accounts": [
+        {
+          "name": "multisig"
+        },
+        {
+          "name": "proposal",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  112,
+                  111,
+                  115,
+                  97,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "proposal.multisig",
+                "account": "Proposal"
+              },
+              {
+                "kind": "account",
+                "path": "proposal.index",
+                "account": "Proposal"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "docs": [
+            "Treasury vault that will send the funds"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "multisig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "recipient",
+          "docs": [
+            "Recipient of the transfer"
+          ],
+          "writable": true
+        },
+        {
+          "name": "executor",
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "initialize",
+      "docs": [
+        "Initialize a new multisig treasury",
+        "",
+        "# Arguments",
+        "* `ctx` - Context containing all required accounts",
+        "* `signers` - Array of authorized signer public keys",
+        "* `threshold` - Minimum signatures required (M in M-of-N)",
+        "",
+        "# Security",
+        "- Validates threshold <= signers.len()",
+        "- Validates threshold >= 1",
+        "- Validates signer uniqueness",
+        "- Vault is a PDA derived from multisig account"
+      ],
+      "discriminator": [
+        175,
+        175,
+        109,
+        31,
+        13,
+        152,
+        155,
+        237
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  117,
+                  108,
+                  116,
+                  105,
+                  115,
+                  105,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "docs": [
+            "Treasury vault PDA - holds SOL and SPL tokens"
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "multisig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "signers",
+          "type": {
+            "vec": "pubkey"
+          }
+        },
+        {
+          "name": "threshold",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "reject_proposal",
+      "docs": [
+        "Reject a proposal",
+        "",
+        "# Arguments",
+        "* `ctx` - Context containing required accounts",
+        "",
+        "# Security",
+        "- Only authorized signers can reject",
+        "- Marks proposal as rejected (cannot be executed)"
+      ],
+      "discriminator": [
+        114,
+        162,
+        164,
+        82,
+        191,
+        11,
+        102,
+        25
+      ],
+      "accounts": [
+        {
+          "name": "multisig"
+        },
+        {
+          "name": "proposal",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  112,
+                  111,
+                  115,
+                  97,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "proposal.multisig",
+                "account": "Proposal"
+              },
+              {
+                "kind": "account",
+                "path": "proposal.index",
+                "account": "Proposal"
+              }
+            ]
+          }
+        },
+        {
+          "name": "signer",
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "update_multisig_config",
+      "discriminator": [
+        236,
+        32,
+        138,
+        143,
+        76,
+        124,
+        10,
+        27
+      ],
+      "accounts": [
+        {
+          "name": "multisig",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  117,
+                  108,
+                  116,
+                  105,
+                  115,
+                  105,
+                  103
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "signers",
+          "type": {
+            "vec": "pubkey"
+          }
+        },
+        {
+          "name": "threshold",
+          "type": "u8"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Multisig",
+      "discriminator": [
+        224,
+        116,
+        121,
+        186,
+        68,
+        161,
+        79,
+        236
+      ]
+    },
+    {
+      "name": "Proposal",
+      "discriminator": [
+        26,
+        94,
+        189,
+        187,
+        116,
+        136,
+        53,
+        33
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "MultisigCreated",
+      "discriminator": [
+        94,
+        25,
+        238,
+        110,
+        95,
+        40,
+        251,
+        66
+      ]
+    },
+    {
+      "name": "ProposalApproved",
+      "discriminator": [
+        70,
+        49,
+        155,
+        228,
+        157,
+        43,
+        88,
+        49
+      ]
+    },
+    {
+      "name": "ProposalCreated",
+      "discriminator": [
+        186,
+        8,
+        160,
+        108,
+        81,
+        13,
+        51,
+        206
+      ]
+    },
+    {
+      "name": "ProposalExecuted",
+      "discriminator": [
+        92,
+        213,
+        189,
+        201,
+        101,
+        83,
+        111,
+        83
+      ]
+    },
+    {
+      "name": "ProposalRejected",
+      "discriminator": [
+        77,
+        15,
+        161,
+        38,
+        240,
+        201,
+        24,
+        208
+      ]
+    },
+    {
+      "name": "SolTransferred",
+      "discriminator": [
+        131,
+        4,
+        43,
+        235,
+        208,
+        155,
+        28,
+        197
+      ]
+    },
+    {
+      "name": "TokenTransferred",
+      "discriminator": [
+        123,
+        84,
+        84,
+        156,
+        12,
+        32,
+        227,
+        149
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "InvalidThreshold",
+      "msg": "Invalid threshold: must be between 1 and number of signers"
+    },
+    {
+      "code": 6001,
+      "name": "UnauthorizedSigner",
+      "msg": "Unauthorized: signer not in authorized signers list"
+    },
+    {
+      "code": 6002,
+      "name": "DuplicateSigner",
+      "msg": "Duplicate signer detected in signers list"
+    },
+    {
+      "code": 6003,
+      "name": "ProposalExpired",
+      "msg": "Proposal has expired and cannot be approved or executed"
+    },
+    {
+      "code": 6004,
+      "name": "ProposalAlreadyExecuted",
+      "msg": "Proposal has already been executed"
+    },
+    {
+      "code": 6005,
+      "name": "ProposalRejected",
+      "msg": "Proposal has been rejected and cannot be executed"
+    },
+    {
+      "code": 6006,
+      "name": "AlreadyApproved",
+      "msg": "Signer has already approved this proposal"
+    },
+    {
+      "code": 6007,
+      "name": "InsufficientApprovals",
+      "msg": "Insufficient approvals: threshold not reached"
+    },
+    {
+      "code": 6008,
+      "name": "InstructionDataTooLarge",
+      "msg": "Instruction data exceeds maximum allowed size"
+    },
+    {
+      "code": 6009,
+      "name": "InvalidExpiry",
+      "msg": "Invalid expiry: must be in the future"
+    },
+    {
+      "code": 6010,
+      "name": "EmptySigners",
+      "msg": "Empty signers list: must have at least one signer"
+    },
+    {
+      "code": 6011,
+      "name": "TooManySigners",
+      "msg": "Too many signers: maximum 10 allowed"
+    },
+    {
+      "code": 6012,
+      "name": "ArithmeticOverflow",
+      "msg": "Arithmetic overflow detected"
+    },
+    {
+      "code": 6013,
+      "name": "InvalidVaultAuthority",
+      "msg": "Invalid vault authority"
+    },
+    {
+      "code": 6014,
+      "name": "InsufficientBalance",
+      "msg": "Insufficient treasury balance"
+    }
+  ],
+  "types": [
+    {
+      "name": "Multisig",
+      "docs": [
+        "Multisig configuration and state",
+        "",
+        "PDA Seeds: [\"multisig\", authority.key()]",
+        "",
+        "This account stores the core multisig configuration including",
+        "authorized signers and approval threshold. It's designed to be",
+        "immutable after initialization to prevent governance attacks."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "docs": [
+              "Authority that created this multisig (for tracking)"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "signers",
+            "docs": [
+              "List of authorized signers (max 10 for compute efficiency)"
+            ],
+            "type": {
+              "vec": "pubkey"
+            }
+          },
+          {
+            "name": "threshold",
+            "docs": [
+              "Minimum signatures required (M in M-of-N)"
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "proposal_count",
+            "docs": [
+              "Total number of proposals created (used for unique seeds)"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "Bump seed for PDA derivation"
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "vault_bump",
+            "docs": [
+              "Bump seed for vault PDA"
+            ],
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MultisigCreated",
+      "docs": [
+        "Emitted when a new multisig is initialized"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "multisig",
+            "type": "pubkey"
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "signers",
+            "type": {
+              "vec": "pubkey"
+            }
+          },
+          {
+            "name": "threshold",
+            "type": "u8"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Proposal",
+      "docs": [
+        "Proposal state and metadata",
+        "",
+        "PDA Seeds: [\"proposal\", multisig.key(), proposal_index.to_le_bytes()]",
+        "",
+        "Each proposal represents a single transaction to be executed",
+        "by the multisig after reaching the approval threshold.",
+        "",
+        "State Machine:",
+        "Created -> Approved/Rejected -> Executed (if approved)",
+        "Created -> Expired (if past expiry timestamp)"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "index",
+            "docs": [
+              "Index/ID of this proposal"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "multisig",
+            "docs": [
+              "Associated multisig account"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "creator",
+            "docs": [
+              "Creator of the proposal"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "instruction_data",
+            "docs": [
+              "Serialized instruction data to execute",
+              "Limited to 1000 bytes for compute efficiency"
+            ],
+            "type": "bytes"
+          },
+          {
+            "name": "approved_signers",
+            "docs": [
+              "Signers who have approved"
+            ],
+            "type": {
+              "vec": "pubkey"
+            }
+          },
+          {
+            "name": "executed",
+            "docs": [
+              "Execution status"
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "rejected",
+            "docs": [
+              "Rejection status"
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "expiry",
+            "docs": [
+              "Expiry timestamp (Unix timestamp)"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "created_at",
+            "docs": [
+              "Creation timestamp"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "executed_at",
+            "docs": [
+              "Execution timestamp (0 if not executed)"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "Bump seed for PDA"
+            ],
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ProposalApproved",
+      "docs": [
+        "Emitted when a proposal is approved by a signer"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "proposal",
+            "type": "pubkey"
+          },
+          {
+            "name": "multisig",
+            "type": "pubkey"
+          },
+          {
+            "name": "signer",
+            "type": "pubkey"
+          },
+          {
+            "name": "approvals_count",
+            "type": "u8"
+          },
+          {
+            "name": "threshold",
+            "type": "u8"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ProposalCreated",
+      "docs": [
+        "Emitted when a new proposal is created"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "proposal",
+            "type": "pubkey"
+          },
+          {
+            "name": "multisig",
+            "type": "pubkey"
+          },
+          {
+            "name": "creator",
+            "type": "pubkey"
+          },
+          {
+            "name": "index",
+            "type": "u64"
+          },
+          {
+            "name": "expiry",
+            "type": "i64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ProposalExecuted",
+      "docs": [
+        "Emitted when a proposal is successfully executed"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "proposal",
+            "type": "pubkey"
+          },
+          {
+            "name": "multisig",
+            "type": "pubkey"
+          },
+          {
+            "name": "executor",
+            "type": "pubkey"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ProposalRejected",
+      "docs": [
+        "Emitted when a proposal is rejected"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "proposal",
+            "type": "pubkey"
+          },
+          {
+            "name": "multisig",
+            "type": "pubkey"
+          },
+          {
+            "name": "rejector",
+            "type": "pubkey"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SolTransferred",
+      "docs": [
+        "Emitted when SOL is transferred from the vault"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "recipient",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TokenTransferred",
+      "docs": [
+        "Emitted when SPL tokens are transferred from the vault"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "recipient",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    }
+  ]
+}

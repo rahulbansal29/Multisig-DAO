@@ -108,4 +108,22 @@ pub mod multisig_dao {
     pub fn execute_proposal(ctx: Context<ExecuteProposal>) -> Result<()> {
         instructions::execute_proposal::handler(ctx)
     }
+
+    pub fn update_multisig_config(
+        ctx: Context<UpdateMultisigConfig>,
+        signers: Vec<Pubkey>,
+        threshold: u8,
+    ) -> Result<()> {
+        instructions::update_multisig_config::handler(ctx, signers, threshold)
+    }
+
+    /// Deposit SOL into the treasury vault
+    /// 
+    /// Anyone can call this to fund the DAO treasury.
+    pub fn deposit_to_vault(
+        ctx: Context<DepositToVault>,
+        amount: u64,
+    ) -> Result<()> {
+        instructions::deposit_vault::handler(ctx, amount)
+    }
 }

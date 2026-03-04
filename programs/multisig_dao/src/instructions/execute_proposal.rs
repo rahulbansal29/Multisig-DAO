@@ -61,6 +61,12 @@ pub fn handler(ctx: Context<ExecuteProposal>) -> Result<()> {
     let proposal = &mut ctx.accounts.proposal;
     let clock = Clock::get()?;
 
+    // Validate executor is an authorized signer
+    require!(
+        multisig.is_signer(&ctx.accounts.executor.key()),
+        MultisigError::UnauthorizedSigner
+    );
+
     // Validate proposal can be executed
     require!(
         proposal.can_execute(multisig.threshold, clock.unix_timestamp),

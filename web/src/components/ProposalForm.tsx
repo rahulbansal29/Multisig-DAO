@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { PublicKey } from '@solana/web3.js'
 import { walletService } from '../services/wallet'
 import { anchorService } from '../services/anchor'
+import { multisigService } from '../services/multisig'
 
 interface ProposalFormProps {
   onCancel: () => void
@@ -35,11 +36,19 @@ export default function ProposalForm({ onCancel, onSuccess }: ProposalFormProps)
       return
     }
 
+    // Trim whitespace from recipient address
+    const trimmedRecipient = formData.recipient.trim()
+
     // Validate recipient is a valid Solana address
+    if (!trimmedRecipient || trimmedRecipient.length < 44 || trimmedRecipient.length > 46) {
+      setError(`Invalid recipient address length: ${trimmedRecipient.length} characters. Solana addresses must be exactly 44-46 characters (Base58 encoded).`)
+      return
+    }
+
     try {
-      new PublicKey(formData.recipient)
-    } catch {
-      setError('Invalid Solana address')
+      new PublicKey(trimmedRecipient)
+    } catch (err) {
+      setError('Invalid recipient address. Solana addresses contain only valid Base58 characters (1-9, A-Z, a-z, excluding: 0, O, I, l)')
       return
     }
 
@@ -60,8 +69,18 @@ export default function ProposalForm({ onCancel, onSuccess }: ProposalFormProps)
         return
       }
 
+      const multisigData = await multisigService.getMultisigData(walletKey)
+      const isSigner = !!multisigData?.signers?.some(
+        (signer: PublicKey) => signer.toString() === walletKey.toString()
+      )
+
+      if (!isSigner) {
+        setError('Only multisig signer wallets can create proposals')
+        return
+      }
+
       // Create proposal on blockchain
-      const recipientPubkey = new PublicKey(formData.recipient)
+      const recipientPubkey = new PublicKey(trimmedRecipient)
       const txSignature = await anchorService.createProposal(
         walletKey,
         formData.description,
@@ -147,11 +166,14 @@ export default function ProposalForm({ onCancel, onSuccess }: ProposalFormProps)
           <input
             type="text"
             name="recipient"
-            placeholder="Solana address"
+            placeholder="e.g., 3wEzj7icty3RaBUp... (44-46 characters)"
             value={formData.recipient}
             onChange={handleChange}
             disabled={loading}
           />
+          <small style={{ color: '#666', marginTop: '0.25rem', display: 'block' }}>
+            Enter a valid Solana public key (Base58 encoded, 44-46 characters)
+          </small>
         </div>
 
         <div className="form-group">
